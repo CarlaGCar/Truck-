@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trucking Platform</title>
+  <!-- Load Tailwind CSS from CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load React and ReactDOM from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <!-- Load Babel for JSX support -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/Babel.min.js"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Main App Component
+    function App() {
+      const [userRole, setUserRole] = React.useState('company'); // Simulated login (company or trucker)
+      const [contracts, setContracts] = React.useState([]);
+      const [truckers, setTruckers] = React.useState([
+        {
+          id: 'trucker1',
+          name: 'John Doe',
+          wcb: 'WCB123',
+          insurance: 'INS456',
+          ctpat: 'CTPAT789',
+          verified: true,
+          documents: [],
+        },
+      ]);
+
+      return (
+        <div class="max-w-4xl w-full bg-white p-6 rounded-lg shadow-lg">
+          <h1 class="text-2xl font-bold text-center mb-4">Trucking Platform</h1>
+          {/* Role Toggle (simulated login) */}
+          <div class="mb-4">
+            <label class="mr-2">Role:</label>
+            <select
+              value={userRole}
+              onChange={(e) => setUserRole(e.target.value)}
+              class="p-2 border rounded"
+            >
+              <option value="company">Company</option>
+              <option value="trucker">Trucker</option>
+            </select>
+          </div>
+          {userRole === 'company' ? (
+            <CompanyDashboard
+              contracts={contracts}
+              setContracts={setContracts}
+              truckers={truckers}
+            />
+          ) : (
+            <TruckerDashboard trucker={truckers[0]} setTruckers={setTruckers} />
+          )}
+        </div>
+      );
+    }
+
+    // Company Dashboard
+    function CompanyDashboard({ contracts, setContracts, truckers }) {
+      const addContract = (contract) => {
+        setContracts([...contracts, { ...contract, id: Date.now(), loads: [] }]);
+        // Placeholder: Sync with company system via API
+        // fetch('https://company.tms.api/contracts', { method: 'POST', body: JSON.stringify(contract) });
+      };
+
+      const addLoads = (contractId, newLoads) => {
+        setContracts(
+          contracts.map((c) =>
+            c.id === contractId ? { ...c, loads: [...c.loads, ...newLoads] } : c
+          )
+        );
+        // Placeholder: Sync loads with company system
+        // fetch('https://company.tms.api/loads', { method: 'POST', body: JSON.stringify(newLoads) });
+      };
+
+      return (
+        <div>
+          <ContractForm onAddContract={addContract} />
+          {contracts.map((contract) => (
+            <div key={contract.id} class="mb-6">
+              <h2 class="text-xl font-semibold">Contract: {contract.commodity}</h2>
+              <BulkLoadUpload contractId={contract.id} onAddLoads={addLoads} />
+              <LoadList
+                contractId={contract.id}
+                loads={contract.loads}
+                truckers={truckers}
+                setContracts={setContracts}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Contract Form
+    function ContractForm({ onAddContract }) {
+      const [form, setForm] = React.useState({
+        commodity: '',
+        units: '',
+        deliverySchedule: '',
+        origin: '',
+        destination: '',
+        consignee: '',
+        notes: '',
+        miles: '',
+      });
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (form.commodity && form.units) {
+          onAddContract(form);
+          setForm({
+            commodity: '',
+            units: '',
+            deliverySchedule: '',
+            origin: '',
+            destination: '',
+            consignee: '',
+            notes: '',
+            miles: '',
+          });
+        }
+      };
+
+      return (
+        <form onSubmit={handleSubmit} class="mb-6 p-4 bg-gray-50 rounded">
+          <h2 class="text-lg font-semibold mb-2">Add Contract</h2>
+          <input
+            type="text"
+            placeholder="Commodity"
+            value={form.commodity}
+            onChange={(e) => setForm({ ...form, commodity: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Units (tonnes, bushels)"
+            value={form.units}
+            onChange={(e) => setForm({ ...form, units: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Delivery Schedule"
+            value={form.deliverySchedule}
+            onChange={(e) => setForm({ ...form, deliverySchedule: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Origin"
+            value={form.origin}
+            onChange={(e) => setForm({ ...form, origin: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Destination"
+            value={form.destination}
+            onChange={(e) => setForm({ ...form, destination: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Consignee"
+            value={form.consignee}
+            onChange={(e) => setForm({ ...form, consignee: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          />
+          <textarea
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          ></textarea>
+          <input
+            type="number"
+            placeholder="Miles"
+            value={form.miles}
+            onChange={(e) => setForm({ ...form, miles: e.target.value })}
+            class="w-full p-2 mb-2 border rounded"
+          />
+          <button
+            type="submit"
+            class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          >
+            Add Contract
+          </button>
+        </form>
+      );
+    }
+
+    // Bulk Load Upload
+    function BulkLoadUpload({ contractId, onAddLoads }) {
+      const [jsonInput, setJsonInput] = React.useState('');
+
+      const handleUpload = () => {
+        try {
+          const loads = JSON.parse(jsonInput).map((load, index) => ({
+            id: Date.now() + index,
+            commodity: load.commodity || '',
+            units: load.units || '',
+            deliverySchedule: load.deliverySchedule || '',
+            origin: load.origin || '',
+            destination: load.destination || '',
+            consignee: load.consignee || '',
+            notes: load.notes || '',
+            miles: load.miles || '',
+            status: 'outstanding',
+            tenderHistory: [],
+            documents: [],
+          }));
+          onAddLoads(contractId, loads);
+          setJsonInput('');
+        } catch (error) {
+          alert('Invalid JSON format');
+        }
+      };
+
+      return (
+        <div class="mb-4 p-4 bg-gray-50 rounded">
+          <h3 class="text-lg font-semibold mb-2">Bulk Load Upload (JSON)</h3>
+          <textarea
+            placeholder='[{"commodity":"Wheat","units":"100 tonnes","deliverySchedule":"2025-05-10","origin":"Farm A","destination":"Warehouse B","consignee":"ABC Corp","notes":"Fragile","miles":"150"}]'
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            class="w-full p-2 mb-2 border rounded"
+          ></textarea>
+          <button
+            onClick={handleUpload}
+            class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+          >
+            Upload Loads
+          </button>
+        </div>
+      );
+    }
+
+    // Load List
+    function LoadList({ contractId, loads, truckers, setContracts }) {
+      const sendTenderRequest = (loadId, truckerId, deadline) => {
+        const tender = {
+          truckerId,
+          offerDate: new Date().toISOString(),
+          deadline,
+          status: 'offered',
+        };
+        setContracts((contracts) =>
+          contracts.map((c) =>
+            c.id === contractId
+              ? {
+                  ...c,
+                  loads: c.loads.map((l) =>
+                    l.id === loadId
+                      ? {
+                          ...l,
+                          status: 'offered',
+                          tenderHistory: [...(l.tenderHistory || []), tender],
+                        }
+                      : l
+                  ),
+                }
+              : c
+          )
+        );
+        // Placeholder: Send email via API (e.g., SendGrid)
+        // fetch('https://api.sendgrid.com/v3/mail/send', {
+        //   method: 'POST',
+        //   headers: { Authorization: 'Bearer YOUR_SENDGRID_KEY' },
+        //   body: JSON.stringify({ to: trucker.email, subject: 'Tender Request', text: `Load ID: ${loadId}, Deadline: ${deadline}` }),
+        // });
+      };
+
+      const verifyDocuments = (loadId) => {
+        setContracts((contracts) =>
+          contracts.map((c) =>
+            c.id === contractId
+              ? {
+                  ...c,
+                  loads: c.loads.map((l) =>
+                    l.id === loadId
+                      ? {
+                          ...l,
+                          status: simulateAiVerification(l.documents)
+                            ? 'verified'
+                            : 'needs_review',
+                        }
+                      : l
+                  ),
+                }
+              : c
+          )
+        );
+      };
+
+      // Simulate AI document verification
+      const simulateAiVerification = (documents) => {
+        // Placeholder: Integrate with AWS Textract or Google Document AI
+        // Example: fetch('https://textract.aws.api/analyze-document', { body: JSON.stringify(documents) });
+        const required = ['BOL', 'Weight Certificate'];
+        const hasRequired = required.every((type) =>
+          documents.some((doc) => doc.type === type)
+        );
+        return hasRequired && documents.every((doc) => doc.name && doc.data);
+      };
+
+      // Calculate load statuses
+      const statusCounts = {
+        outstanding: loads.filter((l) => l.status === 'outstanding').length,
+        offered: loads.filter((l) => l.status === 'offered').length,
+        shipped: loads.filter((l) => l.status === 'shipped').length,
+        pendingVerification: loads.filter((l) => l.status === 'needs_review')
+          .length,
+      };
+
+      return (
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold mb-2">Loads</h3>
+          <div class="mb-2">
+            <p>Outstanding: {statusCounts.outstanding}</p>
+            <p>Offered: {statusCounts.offered}</p>
+            <p>Shipped: {statusCounts.shipped}</p>
+            <p>Pending Verification: {statusCounts.pendingVerification}</p>
+          </div>
+          {loads.map((load) => (
+            <LoadDetails
+              key={load.id}
+              load={load}
+              truckers={truckers}
+              onSendTender={sendTenderRequest}
+              onVerify={verifyDocuments}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // Load Details
+    function LoadDetails({ load, truckers, onSendTender, onVerify }) {
+      const [tenderForm, setTenderForm] = React.useState({
+        truckerId: '',
+        deadline: '',
+      });
+
+      const handleTenderSubmit = (e) => {
+        e.preventDefault();
+        if (tenderForm.truckerId && tenderForm.deadline) {
+          onSendTender(load.id, tenderForm.truckerId, tenderForm.deadline);
+          setTenderForm({ truckerId: '', deadline: '' });
+        }
+      };
+
+      return (
+        <div class="p-4 bg-gray-50 rounded mb-2">
+          <p><strong>Commodity:</strong> {load.commodity}</p>
+          <p><strong>Units:</strong> {load.units}</p>
+          <p><strong>Status:</strong> {load.status}</p>
+          <p><strong>Documents:</strong> {load.documents.length}</p>
+          {load.status === 'outstanding' && (
+            <form onSubmit={handleTenderSubmit} class="mt-2">
+              <select
+                value={tenderForm.truckerId}
+                onChange={(e) =>
+                  setTenderForm({ ...tenderForm, truckerId: e.target.value })
+                }
+                class="p-2 border rounded mr-2"
+              >
+                <option value="">Select Trucker</option>
+                {truckers
+                  .filter((t) => t.verified)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+              </select>
+              <input
+                type="datetime-local"
+                value={tenderForm.deadline}
+                onChange={(e) =>
+                  setTenderForm({ ...tenderForm, deadline: e.target.value })
+                }
+                class="p-2 border rounded mr-2"
+              />
+              <button
+                type="submit"
+                class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              >
+                Send Tender
+              </button>
+            </form>
+          )}
+          {load.status === 'needs_review' && (
+            <button
+              onClick={() => onVerify(load.id)}
+              class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600"
+            >
+              Verify Documents
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Trucker Dashboard
+    function TruckerDashboard({ trucker, setTruckers }) {
+      const handleDocumentUpload = (e) => {
+        const file = e.target.files[0];
+        if (file && ['image/jpeg', 'application/pdf'].includes(file.type)) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setTruckers((truckers) =>
+              truckers.map((t) =>
+                t.id === trucker.id
+                  ? {
+                      ...t,
+                      documents: [
+                        ...t.documents,
+                        {
+                          name: file.name,
+                          type: file.type === 'application/pdf' ? 'PDF' : 'JPEG',
+                          data: reader.result,
+                        },
+                      ],
+                    }
+                  : t
+              )
+            );
+          };
+          reader.readAsDataURL(file);
+        } else {
+          alert('Please upload a JPEG or PDF file');
+        }
+      };
+
+      const handleTenderResponse = (loadId, accept) => {
+        // Placeholder: Update load status via API
+        // fetch('https://company.tms.api/loads/tender', { body: JSON.stringify({ loadId, accept }) });
+        alert(`Tender for Load ${loadId} ${accept ? 'accepted' : 'rejected'}`);
+      };
+
+      return (
+        <div>
+          <h2 class="text-xl font-semibold mb-4">Trucker Dashboard</h2>
+          <div class="mb-4 p-4 bg-gray-50 rounded">
+            <h3 class="text-lg font-semibold">Profile</h3>
+            <p><strong>Name:</strong> {trucker.name}</p>
+            <p><strong>WCB:</strong> {trucker.wcb}</p>
+            <p><strong>Insurance:</strong> {trucker.insurance}</p>
+            <p><strong>CTPAT:</strong> {trucker.ctpat}</p>
+            <p><strong>Verified:</strong> {trucker.verified ? 'Yes' : 'No'}</p>
+          </div>
+          <div class="mb-4 p-4 bg-gray-50 rounded">
+            <h3 class="text-lg font-semibold">Upload Documents</h3>
+            <input
+              type="file"
+              accept="image/jpeg,application/pdf"
+              onChange={handleDocumentUpload}
+              class="p-2 border rounded"
+            />
+          </div>
+          <div class="mb-4 p-4 bg-gray-50 rounded">
+            <h3 class="text-lg font-semibold">Tender Requests</h3>
+            {/* Placeholder: Fetch tender requests from API */}
+            <p>No tender requests yet.</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Render the App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
